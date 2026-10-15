@@ -1,12 +1,12 @@
 {
-  "name": "webapi-demo",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "name": "sec-webapi-demo",
+  "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/node:1": { "version": "22" }
   },
   "hostRequirements": { "cpus": 4, "memory": "8gb" },
-  "postCreateCommand": "./scripts/setup.sh",
+  "postCreateCommand": "bash scripts/setup.sh",
   "forwardPorts": [8000, 3000, 54321],
   "portsAttributes": {
     "8000": { "label": "API", "onAutoForward": "notify" },

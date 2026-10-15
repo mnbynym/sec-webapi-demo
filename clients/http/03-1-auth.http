@@ -1,0 +1,40 @@
+# 3-1 認証（Supabase Auth + JWT 検証）
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### ログイン（alice）
+# @name alice
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "alice@example.com", "password": "{{pw}}"}
+
+### Supabase Auth のトークンレスポンス（access_token / refresh_token / expires_in）
+# ↑ 上のログインのレスポンスを確認する。access_token を jwt.io 等でデコードして中身を見せる
+
+### 公開鍵（JWKS）：非対称鍵で署名されている場合はここから検証鍵を取得する
+GET {{sb}}/auth/v1/.well-known/jwks.json
+apikey: {{anon}}
+
+### API 側での検証結果（alg / kid / aud / iss / exp）
+GET {{api}}/v1/auth/whoami
+Authorization: Bearer {{alice.response.body.$.access_token}}
+
+### 署名を改ざんしたトークン → 401
+GET {{api}}/v1/auth/whoami
+Authorization: Bearer {{alice.response.body.$.access_token}}x
+
+### alg=none のトークン → 401（許可リストにないアルゴリズム）
+GET {{api}}/v1/auth/whoami
+Authorization: Bearer eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDAiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjo5OTk5OTk5OTk5fQ.
+
+### リフレッシュトークンでアクセストークンを更新（Refresh Token Rotation：古い方は使えなくなる）
+POST {{sb}}/auth/v1/token?grant_type=refresh_token
+apikey: {{anon}}
+Content-Type: application/json
+
+{"refresh_token": "{{alice.response.body.$.refresh_token}}"}

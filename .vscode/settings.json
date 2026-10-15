@@ -1,0 +1,11 @@
+{
+  "rest-client.previewOption": "full",
+  "rest-client.previewResponseInUntitledDocument": false,
+  "rest-client.timeoutinmilliseconds": 15000,
+  "rest-client.decodeEscapedUnicodeCharacters": true,
+  "rest-client.fontSize": 15,
+  "editor.fontSize": 16,
+  "terminal.integrated.fontSize": 15,
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+  "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+}

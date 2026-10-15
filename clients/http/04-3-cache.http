@@ -1,0 +1,55 @@
+# 4-3 キャッシュ戦略
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### ログイン（carol）
+# @name carol
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "carol@example.com", "password": "{{pw}}"}
+
+### 1 回目：X-Cache: MISS（MongoDB から取得して Redis に格納）。ETag と Cache-Control を確認
+# @name p
+GET {{api}}/v1/products/SKU-000005
+
+### 2 回目：X-Cache: HIT（Redis から返す）
+GET {{api}}/v1/products/SKU-000005
+
+### 条件付きリクエスト：ETag が一致すれば 304 Not Modified（ボディなし）
+GET {{api}}/v1/products/SKU-000005
+If-None-Match: {{p.response.headers.ETag}}
+
+### 管理者が更新（If-Match で楽観的ロック）→ キャッシュ無効化、ETag の版が上がる
+PATCH {{api}}/v1/products/SKU-000005
+Authorization: Bearer {{carol.response.body.$.access_token}}
+Content-Type: application/merge-patch+json
+If-Match: {{p.response.headers.ETag}}
+
+{"price": 1234}
+
+### 古い ETag で再度更新 → 412 Precondition Failed（他者の更新との競合）
+PATCH {{api}}/v1/products/SKU-000005
+Authorization: Bearer {{carol.response.body.$.access_token}}
+Content-Type: application/merge-patch+json
+If-Match: {{p.response.headers.ETag}}
+
+{"price": 999}
+
+### 古い ETag で条件付き GET → 更新済みなので 200（新しい ETag）
+GET {{api}}/v1/products/SKU-000005
+If-None-Match: {{p.response.headers.ETag}}
+
+### ネガティブキャッシュ：存在しない SKU を 2 回（2 回目は X-Cache: HIT で DB に到達しない）
+GET {{api}}/v1/products/SKU-999999
+
+###
+GET {{api}}/v1/products/SKU-999999
+
+### 個人データは共有キャッシュさせない（Cache-Control: no-store）
+GET {{api}}/v1/orders?limit=1
+Authorization: Bearer {{carol.response.body.$.access_token}}

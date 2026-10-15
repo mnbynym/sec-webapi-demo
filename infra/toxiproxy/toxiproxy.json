@@ -1,0 +1,8 @@
+[
+  {
+    "name": "inventory",
+    "listen": "0.0.0.0:18000",
+    "upstream": "host.docker.internal:8000",
+    "enabled": true
+  }
+]

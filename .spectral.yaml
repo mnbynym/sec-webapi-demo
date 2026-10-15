@@ -1,0 +1,28 @@
+# 1-3 / 5-2 OpenAPI のリントルール（命名規約・エラー形式・AI 向けの説明文）
+extends: ["spectral:oas"]
+rules:
+  paths-kebab-case:
+    description: パスは小文字のケバブケースにする
+    severity: warn
+    given: "$.paths[*]~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^(/[a-z0-9_-]+|/\\{[a-z_]+\\})+$"
+  error-responses-problem-json:
+    description: 4xx/5xx は application/problem+json（RFC 9457）で返す
+    severity: error
+    given: "$.paths[*][*].responses[?(@property.match(/^[45]/))].content"
+    then:
+      field: "application/problem+json"
+      function: truthy
+  operation-summary-required:
+    description: summary は AI エージェントのツール選択にも使われるため必須
+    severity: warn
+    given: "$.paths[*][get,post,put,patch,delete]"
+    then:
+      field: summary
+      function: truthy
+  info-contact: off
+  operation-description: off
+  operation-tag-defined: off

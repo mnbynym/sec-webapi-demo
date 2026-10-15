@@ -1,0 +1,43 @@
+# ローカル補助環境（PostgreSQL と Supabase Auth は `make supabase-start` で別途起動）
+name: sec-webapi-demo
+
+services:
+  mongo:
+    image: mongo:8.0
+    ports: ["27017:27017"]
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+
+  # 4-4 障害注入：API → toxiproxy:18000 → API 内の下流サービス（/_downstream）
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    ports: ["8474:8474", "18000:18000"]
+    volumes: ["./infra/toxiproxy:/config:ro"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+  # 5-3 OTel Collector + Tempo + Prometheus + Loki + Grafana のオールインワン
+  otel-lgtm:
+    image: grafana/otel-lgtm:latest
+    ports: ["3000:3000", "4317:4317", "4318:4318"]
+
+  # 4-1 HTTP/3（QUIC）をエッジで終端するリバースプロキシ
+  caddy:
+    image: caddy:2
+    ports: ["8443:8443/tcp", "8443:8443/udp"]
+    volumes: ["./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro", "caddy-data:/data"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+
+volumes:
+  mongo-data:
+  caddy-data:

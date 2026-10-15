@@ -1,0 +1,18 @@
+{
+  "name": "sec-webapi-demo",
+  "private": true,
+  "type": "module",
+  "description": "WebAPI 研修デモのクライアントと CLI ツール",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "idempotency": "node clients/node/idempotency.mjs",
+    "resilience": "node clients/node/resilience.mjs",
+    "ratelimit": "node clients/node/ratelimit.mjs",
+    "pollution": "node clients/node/prototype-pollution.mjs"
+  },
+  "devDependencies": {
+    "@stoplight/prism-cli": "^5.16.0",
+    "@stoplight/spectral-cli": "^6.16.3",
+    "supabase": "^2.117.0"
+  }
+}

@@ -1,0 +1,10 @@
+.env
+clients/http/.env
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.ruff_cache/
+contracts/openapi.json
+supabase/.temp/
+supabase/.branches/

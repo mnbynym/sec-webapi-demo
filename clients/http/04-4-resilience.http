@@ -1,0 +1,24 @@
+# 4-4 タイムアウト・デッドライン・フォールバック
+# 障害注入: make chaos-latency / chaos-down / chaos-reset
+# クライアント側のリトライ・サーキットブレーカーは npm run resilience
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### 正常時（Server-Timing で下流の所要時間を確認）
+GET {{api}}/v1/inventory/SKU-000001
+
+### make chaos-latency の後：API 側のタイムアウト（1.5 秒）で 504
+GET {{api}}/v1/inventory/SKU-000001
+
+### デッドライン伝播：残り約 1 秒を指定（UNIX ミリ秒）→ 下流の待ち時間も残り時間に合わせて短縮される
+GET {{api}}/v1/inventory/SKU-000001
+X-Request-Deadline: {{$timestamp 1 s}}000
+
+### make chaos-down の後：接続失敗で 503 + Retry-After
+GET {{api}}/v1/inventory/SKU-000001
+
+### 機能縮退：障害時は最後に取得できた値を stale: true で返す
+GET {{api}}/v1/inventory/SKU-000001?fallback=true

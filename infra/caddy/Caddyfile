@@ -1,0 +1,12 @@
+# 4-1 HTTP/3：クライアントは初回 TCP（HTTP/2）で接続し、Alt-Svc: h3=":8443" を受け取って QUIC に昇格する
+{
+	servers {
+		protocols h1 h2 h3
+	}
+}
+
+https://localhost:8443 {
+	tls internal
+	# エッジで QUIC を終端し、オリジン（uvicorn）へは HTTP/1.1 で転送する
+	reverse_proxy host.docker.internal:8000
+}

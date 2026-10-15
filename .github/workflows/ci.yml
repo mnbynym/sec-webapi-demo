@@ -1,0 +1,24 @@
+# 1-3 / 5-1 スキーマ駆動開発の CI：リント・契約の破壊的変更チェック
+name: ci
+on: [push, pull_request]
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: uv sync
+      - run: uv run ruff check .
+      - name: Export OpenAPI
+        run: uv run python -m scripts.export_openapi
+      - name: Spectral lint
+        run: npx --yes @stoplight/spectral-cli@6 lint contracts/openapi.json --fail-severity error
+      - name: Breaking change check (baseline vs current)
+        uses: oasdiff/oasdiff-action/breaking@main
+        with:
+          base: contracts/openapi.baseline.json
+          revision: contracts/openapi.json
+          fail-on: ERR

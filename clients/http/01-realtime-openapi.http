@@ -1,0 +1,24 @@
+# 1-1 REST / SSE / WebSocket の比較
+# WebSocket はブラウザで確認する: {{api}}/demo/
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### REST：生成が終わるまで何も返らない（約 4 秒後に一括）
+GET {{api}}/v1/demo/rest/completion?prompt=方式選定のコツ
+
+### SSE：トークン単位で届く（Content-Type: text/event-stream、各イベントに id）
+# REST Client は完了後にまとめて表示するため、逐次表示はブラウザ（/demo/）で見せる
+GET {{api}}/v1/demo/sse/completion?prompt=方式選定のコツ
+Accept: text/event-stream
+
+### SSE：切断後の再接続を再現（Last-Event-ID: 40 の続きから再開）
+GET {{api}}/v1/demo/sse/completion
+Accept: text/event-stream
+Last-Event-ID: 40
+
+### 1-3 FastAPI が生成した OpenAPI 3.1（"openapi": "3.1.0"）
+# Optional のフィールドが type: ["string", "null"] ではなく anyOf で表現される点も確認
+GET {{api}}/openapi.json

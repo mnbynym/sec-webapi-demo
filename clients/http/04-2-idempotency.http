@@ -1,0 +1,46 @@
+# 4-2 冪等性（Idempotency-Key）
+# 同時送信のデモは npm run idempotency、outbox は make relay
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### ログイン（alice）
+# @name alice
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "alice@example.com", "password": "{{pw}}"}
+
+### 1 回目：201 Created
+POST {{api}}/v1/orders
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+Idempotency-Key: demo-4-2-0001
+
+{"items": [{"sku": "SKU-000020", "quantity": 1}]}
+
+### 2 回目（同じキー・同じ内容）：保存済みレスポンスを再生（Idempotent-Replayed: true、同じ id）
+POST {{api}}/v1/orders
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+Idempotency-Key: demo-4-2-0001
+
+{"items": [{"sku": "SKU-000020", "quantity": 1}]}
+
+### 同じキーで内容を改ざん：422
+POST {{api}}/v1/orders
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+Idempotency-Key: demo-4-2-0001
+
+{"items": [{"sku": "SKU-000020", "quantity": 99}]}
+
+### キーなし：送るたびに別の注文が作られる（二重注文のリスク）
+POST {{api}}/v1/orders
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+
+{"items": [{"sku": "SKU-000020", "quantity": 1}]}

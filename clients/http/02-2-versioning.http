@@ -1,0 +1,47 @@
+# 2-2 バージョニングと段階的非推奨
+# brownout は make brownout-on / brownout-off で切り替える
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### ログイン（bob）
+# @name bob
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "bob@example.com", "password": "{{pw}}"}
+
+### ログイン（carol）
+# @name carol
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "carol@example.com", "password": "{{pw}}"}
+
+### bob の注文一覧から ID を取得
+# @name list
+GET {{api}}/v1/orders?limit=1
+Authorization: Bearer {{bob.response.body.$.access_token}}
+
+### v1（非推奨）：Deprecation / Sunset / Link ヘッダーを確認。total_yen は整数
+GET {{api}}/v1/orders/{{list.response.body.$.data[0].id}}
+Authorization: Bearer {{bob.response.body.$.access_token}}
+
+### v2：total は {amount, currency} に変更。非推奨ヘッダーなし
+GET {{api}}/v2/orders/{{list.response.body.$.data[0].id}}
+Authorization: Bearer {{bob.response.body.$.access_token}}
+
+### 移行ガイド（Link: rel="deprecation" の参照先）
+GET {{api}}/docs/migration-v2
+
+### 旧 API の利用状況（誰がまだ v1 を使っているか）※管理者
+GET {{api}}/v1/admin/deprecation-usage
+Authorization: Bearer {{carol.response.body.$.access_token}}
+
+### make brownout-on の後に実行：503 + Retry-After（計画停止）
+GET {{api}}/v1/orders/{{list.response.body.$.data[0].id}}
+Authorization: Bearer {{bob.response.body.$.access_token}}

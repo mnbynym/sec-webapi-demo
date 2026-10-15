@@ -1,0 +1,81 @@
+# 2-1 リソース指向設計とステータスコード
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### ログイン（alice）
+# @name alice
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "alice@example.com", "password": "{{pw}}"}
+
+### ログイン（carol）
+# @name carol
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "carol@example.com", "password": "{{pw}}"}
+
+### 201 Created + Location：注文を作成する
+# @name created
+POST {{api}}/v1/orders
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+
+{"items": [{"sku": "SKU-000010", "quantity": 2}], "note": "2-1 デモ"}
+
+### 200 OK：Location の URI を v2 で取得する
+GET {{api}}/v2/orders/{{created.response.body.$.id}}
+Authorization: Bearer {{alice.response.body.$.access_token}}
+
+### 201 Created：キャンセル（動詞ではなく「キャンセル」リソースを作成）
+POST {{api}}/v1/orders/{{created.response.body.$.id}}/cancellation
+Authorization: Bearer {{alice.response.body.$.access_token}}
+
+### 409 Conflict：キャンセル済みの注文をもう一度キャンセル
+POST {{api}}/v1/orders/{{created.response.body.$.id}}/cancellation
+Authorization: Bearer {{alice.response.body.$.access_token}}
+
+### 400 Bad Request：JSON の構文エラー
+POST {{api}}/v1/orders
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+
+{"items": [ {"sku": "SKU-000010", "quantity": 2 }
+
+### 422 Unprocessable Content：構文は正しいが制約違反（数量 0・SKU 形式不正）
+POST {{api}}/v1/orders
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+
+{"items": [{"sku": "ABC", "quantity": 0}]}
+
+### 401 Unauthorized：トークンなし（WWW-Authenticate ヘッダー付き）
+GET {{api}}/v1/orders
+
+### 404 Not Found：存在しない注文
+GET {{api}}/v2/orders/01900000-0000-7000-8000-000000000000
+Authorization: Bearer {{alice.response.body.$.access_token}}
+
+### 201 Created：商品登録（管理者）
+POST {{api}}/v1/products
+Authorization: Bearer {{carol.response.body.$.access_token}}
+Content-Type: application/json
+
+{"sku": "SKU-900001", "name": "Demo Product", "category": "books", "price": 1980}
+
+### 409 Conflict：同じ SKU を再登録
+POST {{api}}/v1/products
+Authorization: Bearer {{carol.response.body.$.access_token}}
+Content-Type: application/json
+
+{"sku": "SKU-900001", "name": "Demo Product", "category": "books", "price": 1980}
+
+### 204 No Content：削除（ボディなし）
+DELETE {{api}}/v1/products/SKU-900001
+Authorization: Bearer {{carol.response.body.$.access_token}}

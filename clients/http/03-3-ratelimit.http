@@ -1,0 +1,13 @@
+# 3-3 レートリミット（トークンバケット: 容量 10、毎秒 2 補充）
+# 負荷をかけるデモは make k6-ratelimit または npm run ratelimit
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### RateLimit-Policy / RateLimit ヘッダーを確認（r が残りトークン数、t がリセットまでの秒数）
+GET {{api}}/v1/products?limit=1&fields=sku
+
+### 連打して 429 Too Many Requests + Retry-After を確認する
+GET {{api}}/v1/products?limit=1&fields=sku

@@ -1,0 +1,21 @@
+# Supabase CLI（ローカル）の設定。未指定の項目は CLI の既定値が使われる
+project_id = "sec-webapi-demo"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:8000"
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false

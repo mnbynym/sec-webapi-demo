@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1-1 REST / SSE / WebSocket の比較</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1d2733; --paper: #f7f9fb; --line: #cfd8e1; --muted: #5b6b7b;
+    --rest: #3d5a80; --sse: #2a7f62; --ws: #8a4f7d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.7 "BIZ UDPGothic", system-ui, sans-serif; color: var(--ink); background: var(--paper); }
+  header { padding: 28px 32px 8px; max-width: 1280px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); }
+  main { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; padding: 20px 32px 40px; max-width: 1280px; margin: 0 auto; }
+  section { background: #fff; border: 1px solid var(--line); border-top: 6px solid var(--c); border-radius: 4px; padding: 18px 20px; display: flex; flex-direction: column; min-height: 420px; }
+  h2 { font-size: 1.2rem; margin: 0; color: var(--c); }
+  .how { margin: 2px 0 14px; color: var(--muted); font-size: .9rem; }
+  .out { flex: 1; white-space: pre-wrap; border: 1px solid var(--line); border-radius: 3px; padding: 12px; background: var(--paper); overflow-y: auto; max-height: 320px; }
+  .meta { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; margin: 10px 0 0; min-height: 1.5em; }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  button { font: inherit; border: 0; border-radius: 3px; padding: 8px 14px; background: var(--c); color: #fff; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--c); border: 1px solid var(--c); }
+  button:focus-visible, input:focus-visible { outline: 3px solid #f2b134; outline-offset: 2px; }
+  input { font: inherit; flex: 1; min-width: 0; padding: 7px 10px; border: 1px solid var(--line); border-radius: 3px; }
+  .sys { color: var(--muted); }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>同じ回答を 3 つの方式で受け取る</h1>
+  <p>最初の文字が表示されるまでの時間と、全体の完了時間を比べる。WebSocket は別タブでも開いて双方向のやり取りを確認する。</p>
+</header>
+<main>
+  <section style="--c: var(--rest)">
+    <h2>REST</h2>
+    <p class="how">生成が終わってから一括で返す。fetch で 1 回リクエストする。</p>
+    <div class="out" id="rest-out"></div>
+    <p class="meta" id="rest-meta"></p>
+    <div class="row"><button id="rest-run">回答を取得</button></div>
+  </section>
+
+  <section style="--c: var(--sse)">
+    <h2>SSE</h2>
+    <p class="how">サーバーからの単方向ストリーム。EventSource が切断時に Last-Event-ID 付きで自動再接続する。</p>
+    <div class="out" id="sse-out"></div>
+    <p class="meta" id="sse-meta"></p>
+    <div class="row">
+      <button id="sse-run">ストリーミング開始</button>
+      <button class="ghost" id="sse-cut">途中で切断して再接続</button>
+    </div>
+  </section>
+
+  <section style="--c: var(--ws)">
+    <h2>WebSocket</h2>
+    <p class="how">1 本の接続で双方向に送受信する。開いている全タブにブロードキャストされる。</p>
+    <div class="out" id="ws-out"></div>
+    <p class="meta" id="ws-meta">未接続</p>
+    <div class="row">
+      <input id="ws-name" value="guest" aria-label="表示名" style="max-width: 7em">
+      <button id="ws-connect">接続</button>
+    </div>
+    <div class="row">
+      <input id="ws-text" placeholder="メッセージ" aria-label="メッセージ" disabled>
+      <button id="ws-send" disabled>送信</button>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const ms = (t0) => `${(performance.now() - t0).toFixed(0)} ms`;
+const PROMPT = encodeURIComponent("APIの方式選定のコツは？");
+
+// REST
+$("rest-run").onclick = async () => {
+  $("rest-out").textContent = ""; $("rest-meta").textContent = "待機中…";
+  const t0 = performance.now();
+  const r = await fetch(`/v1/demo/rest/completion?prompt=${PROMPT}`);
+  const body = await r.json();
+  $("rest-out").textContent = body.text;
+  $("rest-meta").textContent = `最初の表示 ${ms(t0)} ／ 完了 ${ms(t0)}（${body.tokens} トークン）`;
+};
+
+// SSE
+let es, sseT0, firstAt, received = 0;
+function startSSE() {
+  es?.close();
+  $("sse-out").textContent = ""; received = 0; firstAt = null; sseT0 = performance.now();
+  es = new EventSource(`/v1/demo/sse/completion?prompt=${PROMPT}`);
+  es.addEventListener("token", (e) => {
+    firstAt ??= ms(sseT0);
+    received++;
+    $("sse-out").textContent += JSON.parse(e.data).text;
+    $("sse-meta").textContent = `最初の表示 ${firstAt} ／ 受信 ${received} トークン（id=${e.lastEventId}）`;
+  });
+  es.addEventListener("done", () => {
+    $("sse-meta").textContent = `最初の表示 ${firstAt} ／ 完了 ${ms(sseT0)}`;
+    es.close();
+  });
+  es.onerror = () => { $("sse-meta").textContent += " ／ 切断 → 再接続中…"; };
+}
+$("sse-run").onclick = startSSE;
+// サーバー都合の切断を再現する：接続を閉じ、最後の id から続きを取得する
+$("sse-cut").onclick = () => {
+  if (!es) return;
+  const lastId = Number($("sse-meta").textContent.match(/id=(\d+)/)?.[1] ?? -1);
+  es.close();
+  $("sse-out").textContent += "\n〔切断〕\n";
+  setTimeout(async () => {
+    // EventSource は独自ヘッダーを付けられないため、再開の様子は fetch で Last-Event-ID を送って再現する
+    const r = await fetch(`/v1/demo/sse/completion?prompt=${PROMPT}`, { headers: { "Last-Event-ID": String(lastId) } });
+    const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      const events = buf.split("\n\n"); buf = events.pop();
+      for (const ev of events) {
+        const data = ev.match(/^data: (.*)$/m)?.[1];
+        if (ev.includes("event: token") && data) $("sse-out").textContent += JSON.parse(data).text;
+        if (ev.includes("event: done")) $("sse-meta").textContent = `id=${lastId} の続きから再開して完了`;
+      }
+    }
+  }, 800);
+};
+
+// WebSocket
+let ws;
+$("ws-connect").onclick = () => {
+  ws?.close();
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/v1/demo/ws/chat?name=${encodeURIComponent($("ws-name").value)}`);
+  ws.onopen = () => { $("ws-meta").textContent = "接続中"; $("ws-text").disabled = $("ws-send").disabled = false; $("ws-text").focus(); };
+  ws.onclose = () => { $("ws-meta").textContent = "切断されました"; $("ws-text").disabled = $("ws-send").disabled = true; };
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    const line = document.createElement("div");
+    line.textContent = m.system ? m.text : `${m.from}: ${m.text}`;
+    if (m.system) line.className = "sys";
+    $("ws-out").append(line); $("ws-out").scrollTop = $("ws-out").scrollHeight;
+  };
+};
+const send = () => { if ($("ws-text").value) { ws.send($("ws-text").value); $("ws-text").value = ""; } };
+$("ws-send").onclick = send;
+$("ws-text").onkeydown = (e) => { if (e.key === "Enter" && !e.isComposing) send(); };
+</script>
+</body>
+</html>

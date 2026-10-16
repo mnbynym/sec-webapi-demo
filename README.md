@@ -77,7 +77,7 @@ Supabase の Transaction pooler（ポート 6543）を使う場合は `DB_STATEM
 REST Client のファイルは上から順に `Send Request` すれば台本どおりに進む。
 
 各台本のリクエストごとの解説は [docs/http/](docs/http/README.md) にある。
-| — | MongoDB のデータの確認 | [docs/mongodb-data.md](docs/mongodb-data.md)、`clients/mongodb/explore.mongodb.js` |
+MongoDB のデータの確認は [docs/mongodb-data.md](docs/mongodb-data.md)、`clients/mongodb/explore.mongodb.js` 
 
 | 節 | 内容 | 実行するもの |
 |---|---|---|
@@ -128,7 +128,7 @@ contracts/           OpenAPI のベースラインと破壊的変更の例
 db/schema.sql        PostgreSQL のスキーマ
 infra/               Caddy / Toxiproxy の設定
 scripts/             初期化・シード・リセット・事前チェック・実行計画比較など
-docs/                講師向け手順書
+docs/                ガイド
 ```
 
 ## 注意

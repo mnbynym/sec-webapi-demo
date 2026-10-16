@@ -6,7 +6,7 @@
 @anon = {{$dotenv SUPABASE_ANON_KEY}}
 @pw = {{$dotenv DEMO_PASSWORD}}
 
-### ログイン（alice）
+### 1. ログイン（alice）
 # @name alice
 POST {{sb}}/auth/v1/token?grant_type=password
 apikey: {{anon}}
@@ -14,27 +14,27 @@ Content-Type: application/json
 
 {"email": "alice@example.com", "password": "{{pw}}"}
 
-### 現在のプロフィール（role: member）
+### 2. 現在のプロフィール（role: member）
 GET {{api}}/v1/users/me
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### ✔ 安全版：role を混入させると 422（additionalProperties: false）
+### 3. ✔ 安全版：role を混入させると 422（additionalProperties: false）
 PATCH {{api}}/v1/users/me
 Authorization: Bearer {{alice.response.body.$.access_token}}
 Content-Type: application/json
 
 {"display_name": "Alice ★", "role": "admin"}
 
-### ✖ Mass Assignment（脆弱版）：受け取った JSON をそのままモデルに反映 → admin に昇格
+### 4. ✖ Mass Assignment（脆弱版）：受け取った JSON をそのままモデルに反映 → admin に昇格
 PATCH {{api}}/vuln/users/me
 Authorization: Bearer {{alice.response.body.$.access_token}}
 Content-Type: application/json
 
 {"display_name": "Alice ★", "role": "admin"}
 
-### 昇格した alice が管理者 API を実行できてしまう（確認後 make reset）
+### 5. 昇格した alice が管理者 API を実行できてしまう（確認後 make reset）
 GET {{api}}/v1/admin/users
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### 正規表現に使う入力はエスケープ（ReDoS 対策）：記号を含む検索も安全に部分一致
+### 6. 正規表現に使う入力はエスケープ（ReDoS 対策）：記号を含む検索も安全に部分一致
 GET {{api}}/v1/products?q=(a%2B)%2B$&limit=3

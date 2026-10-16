@@ -6,7 +6,7 @@
 @anon = {{$dotenv SUPABASE_ANON_KEY}}
 @pw = {{$dotenv DEMO_PASSWORD}}
 
-### ログイン（alice）
+### 1. ログイン（alice）
 # @name alice
 POST {{sb}}/auth/v1/token?grant_type=password
 apikey: {{anon}}
@@ -14,36 +14,36 @@ Content-Type: application/json
 
 {"email": "alice@example.com", "password": "{{pw}}"}
 
-### カーソル方式：1 ページ目（alice は 100 万件の注文を持つ）
+### 2. カーソル方式：1 ページ目（alice は 100 万件の注文を持つ）
 # @name page1
 GET {{api}}/v1/orders?limit=5
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### カーソル方式：next_cursor をそのまま渡して 2 ページ目（深さに関係なく一定時間）
+### 3. カーソル方式：next_cursor をそのまま渡して 2 ページ目（深さに関係なく一定時間）
 GET {{api}}/v1/orders?limit=5&cursor={{page1.response.body.$.pagination.next_cursor}}
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### オフセット方式：浅いページ（total_count 付き）
+### 4. オフセット方式：浅いページ（total_count 付き）
 GET {{api}}/v1/orders?limit=5&page=1
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### オフセット方式：深いページ（10 万ページ目）→ 応答時間を比較
+### 5. オフセット方式：深いページ（10 万ページ目）→ 応答時間を比較
 GET {{api}}/v1/orders?limit=5&page=100000
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### フィルタ：ステータス + 作成日時の範囲 + 昇順
+### 6. フィルタ：ステータス + 作成日時の範囲 + 昇順
 GET {{api}}/v1/orders?status=shipped&created_at_gte=2026-09-01T00:00:00Z&sort=created_at&limit=5
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### 400：改ざんされたカーソル
+### 7. 400：改ざんされたカーソル
 GET {{api}}/v1/orders?cursor=invalid!!
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### 商品検索（MongoDB）：等値(category) + 範囲(price) + ソート(created_at)
+### 8. 商品検索（MongoDB）：等値(category) + 範囲(price) + ソート(created_at)
 GET {{api}}/v1/products?category=books&price_gte=1000&price_lte=5000&limit=5
 
-### Sparse Fieldsets：必要なフィールドだけ返す
+### 9. Sparse Fieldsets：必要なフィールドだけ返す
 GET {{api}}/v1/products?category=books&fields=sku,name,price&limit=5
 
-### 400：未知のフィールド指定
+### 10. 400：未知のフィールド指定
 GET {{api}}/v1/products?fields=sku,password

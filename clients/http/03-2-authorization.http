@@ -5,7 +5,7 @@
 @anon = {{$dotenv SUPABASE_ANON_KEY}}
 @pw = {{$dotenv DEMO_PASSWORD}}
 
-### ログイン（alice）
+### 1. ログイン（alice）
 # @name alice
 POST {{sb}}/auth/v1/token?grant_type=password
 apikey: {{anon}}
@@ -13,7 +13,7 @@ Content-Type: application/json
 
 {"email": "alice@example.com", "password": "{{pw}}"}
 
-### ログイン（bob）
+### 1. ログイン（bob）
 # @name bob
 POST {{sb}}/auth/v1/token?grant_type=password
 apikey: {{anon}}
@@ -21,27 +21,27 @@ Content-Type: application/json
 
 {"email": "bob@example.com", "password": "{{pw}}"}
 
-### bob が自分の注文を確認（order_no と id を控える）
+### 2. bob が自分の注文を確認（order_no と id を控える）
 # @name bobOrders
 GET {{api}}/v1/orders?limit=1
 Authorization: Bearer {{bob.response.body.$.access_token}}
 
-### ✖ BOLA（脆弱版）：alice が bob の注文番号を指定 → 他人の注文が見えてしまう
+### 3. ✖ BOLA（脆弱版）：alice が bob の注文番号を指定 → 他人の注文が見えてしまう
 GET {{api}}/vuln/orders/{{bobOrders.response.body.$.data[0].order_no}}
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### ✔ 安全版：UUID + 所有者チェック。他人の注文は存在ごと隠して 404
+### 4. ✔ 安全版：UUID + 所有者チェック。他人の注文は存在ごと隠して 404
 GET {{api}}/v2/orders/{{bobOrders.response.body.$.data[0].id}}
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### ✖ BFLA（脆弱版）：一般ユーザーが管理者 API を実行できてしまう
+### 5. ✖ BFLA（脆弱版）：一般ユーザーが管理者 API を実行できてしまう
 GET {{api}}/vuln/admin/users
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### ✔ 安全版：ロールを DB で確認して 403
+### 6. ✔ 安全版：ロールを DB で確認して 403
 GET {{api}}/v1/admin/users
 Authorization: Bearer {{alice.response.body.$.access_token}}
 
-### ✔ 一般ユーザーは商品を削除できない（403）
+### 7. ✔ 一般ユーザーは商品を削除できない（403）
 DELETE {{api}}/v1/products/SKU-000001
 Authorization: Bearer {{alice.response.body.$.access_token}}

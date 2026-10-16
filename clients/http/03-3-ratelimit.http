@@ -6,8 +6,8 @@
 @anon = {{$dotenv SUPABASE_ANON_KEY}}
 @pw = {{$dotenv DEMO_PASSWORD}}
 
-### RateLimit-Policy / RateLimit ヘッダーを確認（r が残りトークン数、t がリセットまでの秒数）
+### 1. RateLimit-Policy / RateLimit ヘッダーを確認（r が残りトークン数、t がリセットまでの秒数）
 GET {{api}}/v1/products?limit=1&fields=sku
 
-### 連打して 429 Too Many Requests + Retry-After を確認する
+### 2. 連打して 429 Too Many Requests + Retry-After を確認する
 GET {{api}}/v1/products?limit=1&fields=sku

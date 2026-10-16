@@ -1,0 +1,54 @@
+"""Date with time (isoformat)"""
+scalar DateTime
+
+"""注文（PostgreSQL）"""
+type Order {
+  id: ID!
+  orderNo: Int!
+  status: String!
+  totalYen: Int!
+  createdAt: DateTime!
+  items: [OrderItem!]!
+}
+
+"""注文明細"""
+type OrderItem {
+  sku: String!
+  quantity: Int!
+  unitPrice: Int!
+
+  """明細の商品。DataLoader の有無で N+1 の発生が変わる"""
+  product: Product
+}
+
+"""カーソルベースのページ（Relay の Connection を簡略化した形）"""
+type OrderPage {
+  nodes: [Order!]!
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+"""商品（MongoDB）"""
+type Product {
+  sku: String!
+  name: String!
+  category: String!
+
+  """価格（円）"""
+  price: Int!
+  tags: [String!]!
+
+  """同じカテゴリの商品。ネストを深くできるため、深さ制限のデモに使う"""
+  related(first: Int! = 3): [Product!]!
+}
+
+type Query {
+  """商品を検索する（認証不要）"""
+  products(category: String = null, first: Int! = 10): [Product!]!
+
+  """商品を 1 件取得する（認証不要）"""
+  product(sku: String!): Product
+
+  """自分の注文一覧（要認証）。所有者 ID で必ず絞り込む（BOLA 対策は REST と同じ）"""
+  myOrders(first: Int! = 10, after: String = null): OrderPage!
+}

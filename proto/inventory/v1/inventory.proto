@@ -1,0 +1,57 @@
+// 1-1 gRPC：サービス間通信用の在庫サービス
+//
+// - .proto がそのまま契約（スキーマファースト）。クライアント・サーバーのコードはここから生成する
+// - フィールド番号はシリアライズ後の識別子。一度使った番号は変更・再利用しない（後方互換性）
+// - 削除したフィールドは reserved で番号と名前を予約し、誤って再利用されるのを防ぐ
+syntax = "proto3";
+
+package inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service InventoryService {
+  // 在庫を 1 件取得する（Unary RPC）
+  rpc GetStock(GetStockRequest) returns (Stock);
+  // 複数 SKU の在庫を一括取得する（Unary RPC）
+  rpc BatchGetStock(BatchGetStockRequest) returns (BatchGetStockResponse);
+  // 在庫の変動を配信する（Server streaming RPC）
+  rpc WatchStock(WatchStockRequest) returns (stream StockEvent);
+}
+
+enum Warehouse {
+  WAREHOUSE_UNSPECIFIED = 0;  // proto3 の enum は 0 を「未指定」にする
+  WAREHOUSE_TOKYO = 1;
+  WAREHOUSE_OSAKA = 2;
+  WAREHOUSE_FUKUOKA = 3;
+}
+
+message GetStockRequest {
+  string sku = 1;  // 例: SKU-000001
+}
+
+message Stock {
+  reserved 5;             // 削除済みフィールドの番号（再利用禁止）
+  reserved "location";    // 削除済みフィールドの名前
+  string sku = 1;
+  int32 available = 2;
+  Warehouse warehouse = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+message BatchGetStockRequest {
+  repeated string skus = 1;
+}
+
+message BatchGetStockResponse {
+  repeated Stock stocks = 1;
+}
+
+message WatchStockRequest {
+  string sku = 1;
+  int32 max_events = 2;  // 0 なら既定値（5 件）
+}
+
+message StockEvent {
+  Stock stock = 1;
+  int32 delta = 2;  // 前回からの増減
+}

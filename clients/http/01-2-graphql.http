@@ -1,0 +1,121 @@
+# 1-1 GraphQL（REST との比較）
+# X-REQUEST-TYPE: GraphQL を付けると、REST Client はクエリ本文と変数（空行の後の JSON）を
+# {"query": ..., "variables": ...} に変換して POST する
+# ブラウザで {{api}}/graphql を開くと GraphiQL（スキーマ補完付きの IDE）が使える
+
+@api = {{$dotenv API_BASE_URL}}
+@sb = {{$dotenv SUPABASE_URL}}
+@anon = {{$dotenv SUPABASE_ANON_KEY}}
+@pw = {{$dotenv DEMO_PASSWORD}}
+
+### ログイン（alice）
+# @name alice
+POST {{sb}}/auth/v1/token?grant_type=password
+apikey: {{anon}}
+Content-Type: application/json
+
+{"email": "alice@example.com", "password": "{{pw}}"}
+
+### 必要なフィールドだけを指定して取得する（REST の ?fields=sku,name,price に相当）
+POST {{api}}/graphql
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  products(category: "books", first: 3) { sku name price }
+}
+
+### 1 リクエストで複数のリソースをまとめて取得する（REST では注文一覧 + 商品詳細 × N 回）
+POST {{api}}/graphql
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query ($first: Int!) {
+  myOrders(first: $first) {
+    hasNextPage
+    endCursor
+    nodes {
+      orderNo
+      status
+      items { quantity product { name price } }
+    }
+  }
+  product(sku: "SKU-000001") { name price }
+}
+
+{"first": 3}
+
+### ✖ N+1：DataLoader なし → extensions.queryStats.mongoQueries が 20（明細の数だけ問い合わせ）
+POST {{api}}/graphql/naive
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  myOrders(first: 20) { nodes { orderNo items { quantity product { name price } } } }
+}
+
+### ✔ DataLoader あり → mongoQueries が 1（20 件の SKU を 1 回の $in クエリにまとめる）
+POST {{api}}/graphql
+Authorization: Bearer {{alice.response.body.$.access_token}}
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  myOrders(first: 20) { nodes { orderNo items { quantity product { name price } } } }
+}
+
+### エラー：未認証でも HTTP は 200。errors[].extensions.code で種類を判別する
+POST {{api}}/graphql
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  myOrders { nodes { orderNo } }
+}
+
+### エラー：スキーマにないフィールド（実行前の検証で拒否される）
+POST {{api}}/graphql
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  products(first: 1) { sku password }
+}
+
+### 深さ制限：ネストが 5 段を超えるクエリを拒否（計算量の爆発を防ぐ）
+POST {{api}}/graphql
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  products(first: 1) { related { related { related { related { related { name } } } } } }
+}
+
+### エイリアス数の制限：同じフィールドを別名で大量に実行させる攻撃を拒否（上限 10）
+POST {{api}}/graphql
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  a1: product(sku: "SKU-000001") { name }  a2: product(sku: "SKU-000002") { name }
+  a3: product(sku: "SKU-000003") { name }  a4: product(sku: "SKU-000004") { name }
+  a5: product(sku: "SKU-000005") { name }  a6: product(sku: "SKU-000006") { name }
+  a7: product(sku: "SKU-000007") { name }  a8: product(sku: "SKU-000008") { name }
+  a9: product(sku: "SKU-000009") { name }  a10: product(sku: "SKU-000010") { name }
+  a11: product(sku: "SKU-000011") { name }
+}
+
+### イントロスペクション：スキーマ全体を取得できる（本番では DisableIntrospection で無効化を検討）
+POST {{api}}/graphql
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query {
+  __schema { queryType { fields { name description } } }
+}
+
+### GET でも実行できる（参照系なら HTTP キャッシュや CDN を効かせやすい。POST はキャッシュされない）
+# クエリ { product(sku: "SKU-000001") { name price } } を URL エンコードしたもの
+GET {{api}}/graphql?query=%7Bproduct(sku%3A%22SKU-000001%22)%7Bname%20price%7D%7D

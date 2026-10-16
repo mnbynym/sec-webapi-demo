@@ -20,15 +20,16 @@ def summarize(title: str, plan: list[str]) -> None:
     text = "\n".join(plan)
     exec_ms = re.search(r"Execution Time: ([\d.]+) ms", text)
     buffers = re.search(r"Buffers: shared hit=(\d+)(?: read=(\d+))?", text)
-    rows = re.search(r"Index Scan.*?rows=(\d+) loops", text)
+    temp = re.search(r"temp read=(\d+) written=(\d+)", text)
+    # 各ノードが処理した行数のうち最大のもの（= 実際に読んだ行数）
+    rows = max((int(r) for r in re.findall(r"actual time=[\d.]+\.\.[\d.]+ rows=(\d+)", text)), default=0)
     print(f"\n=== {title}")
     for line in plan[:6]:
         print("  " + line)
     print("  ...")
-    hit = int(buffers[1]) + int(buffers[2] or 0) if buffers else 0
-    print(
-        f"  ▶ 実行時間 {exec_ms[1] if exec_ms else '?'} ms / 走査ページ {hit:,} / Index Scan 行数 {rows[1] if rows else '?'}"
-    )
+    pages = int(buffers[1]) + int(buffers[2] or 0) if buffers else 0
+    spill = f" / 一時ファイル {int(temp[2]):,} ページ書き込み" if temp else ""
+    print(f"  ▶ 実行時間 {exec_ms[1] if exec_ms else '?'} ms / 走査ページ {pages:,} / 処理行数 {rows:,}{spill}")
 
 
 async def main() -> None:

@@ -6,7 +6,7 @@
 @anon = {{$dotenv SUPABASE_ANON_KEY}}
 @pw = {{$dotenv DEMO_PASSWORD}}
 
-### REST：生成が終わるまで何も返らない（約 4 秒後に一括）
+### REST：生成が終わるまで何も返らない（約 2.5 秒後に一括）
 GET {{api}}/v1/demo/rest/completion?prompt=方式選定のコツ
 
 ### SSE：トークン単位で届く（Content-Type: text/event-stream、各イベントに id）

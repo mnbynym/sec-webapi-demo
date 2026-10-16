@@ -47,8 +47,11 @@ down: ## すべて停止
 	docker compose down
 	npx supabase stop
 
-# ------------------------------------------------------------------ 実行
-run: ## API サーバーを起動（Toxiproxy から到達できるよう 0.0.0.0 で待ち受け）
+# ------------------------------------------------------------------ 停止と実行
+stop: ## 起動中の API サーバーを停止
+	-pkill -f "uvicorn app.main:app" && sleep 1 || true
+
+run: stop ## API サーバーを起動（既に起動していれば停止してから起動）
 	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 relay: ## 4-2 outbox リレーを常駐起動

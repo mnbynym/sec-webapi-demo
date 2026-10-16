@@ -77,6 +77,7 @@ Supabase の Transaction pooler（ポート 6543）を使う場合は `DB_STATEM
 REST Client のファイルは上から順に `Send Request` すれば台本どおりに進む。
 
 各台本のリクエストごとの解説は [docs/http/](docs/http/README.md) にある。
+| — | MongoDB のデータの確認 | [docs/mongodb-data.md](docs/mongodb-data.md)、`clients/mongodb/explore.mongodb.js` |
 
 | 節 | 内容 | 実行するもの |
 |---|---|---|
@@ -132,7 +133,7 @@ docs/                講師向け手順書
 
 ## 注意
 
-- `/vuln/*` は教材用の脆弱なエンドポイントだ。`ENABLE_VULN_ENDPOINTS=false` で無効化できる。コードを流用する場合は安全版（`/v1/*`）を参照すること。
+- `/vuln/*` は教材用の脆弱なエンドポイント。`ENABLE_VULN_ENDPOINTS=false` で無効化できる。コードを流用する場合は安全版（`/v1/*`）を参照すること。
 - 下流サービス（`/_downstream`）はデモを単純にするため同じプロセスに同居させている。
 - `make fuzz` は注文を大量に作成するので、終了後に `make reset` を実行する。
 - シード件数は `.env` の `SEED_ORDERS` / `SEED_PRODUCTS` で変更できる。容量の小さい無料枠では減らすとよい。

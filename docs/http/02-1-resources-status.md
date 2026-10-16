@@ -8,7 +8,7 @@
 |---|---|
 | 送信 | Supabase Auth の `/auth/v1/token?grant_type=password` に、メールとパスワードを POST する |
 | 結果 | `access_token`、`refresh_token`、`expires_in` などを含む JSON が返る |
-| 役割 | `# @name alice` で結果に名前を付け、以降のリクエストで `{{alice.response.body.$.access_token}}` として参照する |
+| 役割 | `# @name alice` で結果に名前を付け（REST Clientのリクエスト変数）、以降のリクエストで `{{alice.response.body.$.access_token}}` として参照する |
 
 alice は一般ユーザー（注文の作成とキャンセル）、carol は管理者（商品の登録と削除）として使う。
 

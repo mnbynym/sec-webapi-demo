@@ -18,10 +18,6 @@ from app.problems import PROBLEM_TYPES, ProblemException, install_problem_handle
 from app.routers import inventory, orders, products, realtime, users, vuln
 from app.telemetry import setup_logging, setup_telemetry
 
-    app.include_router(inventory.downstream)
-    app.include_router(graphql_router)  # 1-1 GraphQL（DataLoader あり）
-    app.include_router(graphql_naive_router)  # 1-1 GraphQL（N+1 比較用）
-
 log = logging.getLogger("app")
 settings = get_settings()
 BROWSER_DIR = Path(__file__).resolve().parent.parent / "clients" / "browser"
@@ -91,6 +87,8 @@ def create_app() -> FastAPI:
     app.include_router(users.admin)
     app.include_router(inventory.router)
     app.include_router(inventory.downstream)
+    app.include_router(graphql_router)  # 1-1 GraphQL（DataLoader あり）← 追加
+    app.include_router(graphql_naive_router)  # 1-1 GraphQL（N+1 比較用）← 追加
     if settings.enable_vuln_endpoints:
         app.include_router(vuln.router)
 

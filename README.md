@@ -76,6 +76,8 @@ Supabase の Transaction pooler（ポート 6543）を使う場合は `DB_STATEM
 各デモの前に `make reset` を実行すると、状態が初期化される（大量のシードデータは残る）。
 REST Client のファイルは上から順に `Send Request` すれば台本どおりに進む。
 
+各台本のリクエストごとの解説は [docs/http/](docs/http/README.md) にある。
+
 | 節 | 内容 | 実行するもの |
 |---|---|---|
 | 1-1 | REST / SSE / WebSocket の比較 | ブラウザで `http://localhost:8000/demo/`、`clients/http/01-realtime-openapi.http` |

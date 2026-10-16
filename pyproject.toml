@@ -20,10 +20,17 @@ dependencies = [
     "opentelemetry-instrumentation-redis",
     "opentelemetry-instrumentation-httpx",
     "opentelemetry-instrumentation-logging",
+    "strawberry-graphql[fastapi]>=0.270",
+    "grpcio>=1.84",
+    "grpcio-reflection>=1.84",
+    "protobuf>=5.29",
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.6"]
+dev = [
+    "grpcio-tools>=1.84",
+    "ruff>=0.6",
+]
 
 [tool.uv]
 package = false
@@ -31,6 +38,7 @@ package = false
 [tool.ruff]
 line-length = 120
 target-version = "py312"
+extend-exclude = ["app/grpc_gen/inventory"]  # protoc の生成コード
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "ASYNC"]

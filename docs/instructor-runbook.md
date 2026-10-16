@@ -32,7 +32,7 @@ make reset && make doctor
 
 | 節 | 事前準備 | 見せるポイント |
 |---|---|---|
-| 1-1 | ブラウザを 2 タブ開く | REST は最初の表示まで約 4 秒、SSE は即座に表示が始まる。WebSocket は他タブにも届く |
+| 1-1 | ブラウザを 2 タブ開く | REST は最初の表示まで約 2.5 秒、SSE は即座に表示が始まる。WebSocket は他タブにも届く |
 | 2-2 | なし | v1 のレスポンスヘッダー（Deprecation / Sunset / Link）。`make brownout-on` で 503 に変わる |
 | 2-3 | なし | 深いページのオフセットは遅い。`make explain-pg` で走査ページ数の差（数千 vs 数ページ）を見せる |
 | 3-2 / 3-4 | `make reset` | 脆弱版 → 安全版の順で同じ操作をする。3-4 の昇格後は必ず `make reset` |

@@ -12,6 +12,8 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.db import create_mongo, create_pg_pool, create_redis
+from app.graphql_api import naive_router as graphql_naive_router
+from app.graphql_api import router as graphql_router
 from app.problems import PROBLEM_TYPES, ProblemException, install_problem_handlers
 from app.routers import inventory, orders, products, realtime, users, vuln
 from app.telemetry import setup_logging, setup_telemetry
@@ -85,6 +87,8 @@ def create_app() -> FastAPI:
     app.include_router(users.admin)
     app.include_router(inventory.router)
     app.include_router(inventory.downstream)
+    app.include_router(graphql_router)  # 1-1 GraphQL（DataLoader あり）← 追加
+    app.include_router(graphql_naive_router)  # 1-1 GraphQL（N+1 比較用）← 追加
     if settings.enable_vuln_endpoints:
         app.include_router(vuln.router)
 

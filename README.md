@@ -79,6 +79,8 @@ REST Client のファイルは上から順に `Send Request` すれば台本ど�
 | 節 | 内容 | 実行するもの |
 |---|---|---|
 | 1-1 | REST / SSE / WebSocket の比較 | ブラウザで `http://localhost:8000/demo/`、`clients/http/01-realtime-openapi.http` |
+| 1-1 | GraphQL（N+1 と DataLoader、深さ・エイリアス制限） | `clients/http/01-2-graphql.http`、ブラウザで `/graphql`（GraphiQL） |
+| 1-1 | gRPC（契約、ステータスコード、デッドライン、ストリーミング） | `make grpc-server` + `make grpc-demo`、`make grpcurl-list` |
 | 1-2 | OpenAPI → Tool Use 定義、MCP サーバー | `make tools`、Claude Code で `.mcp.json` の `sec-webapi-demo` を有効化 |
 | 1-3 | OpenAPI 3.1、Spectral、Prism | `make lint-openapi`、`make mock`、`http://localhost:8000/docs` |
 | 2-1 | リソース指向設計とステータスコード | `clients/http/02-1-resources-status.http` |

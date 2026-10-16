@@ -47,8 +47,11 @@ down: ## すべて停止
 	docker compose down
 	npx supabase stop
 
-# ------------------------------------------------------------------ 実行
-run: ## API サーバーを起動（Toxiproxy から到達できるよう 0.0.0.0 で待ち受け）
+# ------------------------------------------------------------------ 停止と実行
+stop: ## 起動中の API サーバーを停止
+	-pkill -f "uvicorn app.main:app" && sleep 1 || true
+
+run: stop ## API サーバーを起動（既に起動していれば停止してから起動）
 	uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 relay: ## 4-2 outbox リレーを常駐起動
@@ -118,4 +121,28 @@ fuzz: ## 5-1 Schemathesis でプロパティベースドテスト（API 起動�
 lint: ## Python のリント
 	uv run ruff check . && uv run ruff format --check .
 
+# ------------------------------------------------------------------ 1-1 GraphQL / gRPC（追加）
+GRPCURL := docker run --rm --network host fullstorydev/grpcurl -plaintext
+
+graphql-schema: ## 1-1 GraphQL のスキーマ（SDL）を contracts/schema.graphql に書き出す
+	$(PY) -m scripts.export_graphql_schema
+
+grpc-gen: ## 1-1 proto/ から gRPC の Python コードを生成
+	bash scripts/grpc_gen.sh
+
+grpc-server: ## 1-1 gRPC 在庫サービスを起動（:50051）
+	$(PY) -m app.grpc_server
+
+grpc-demo: ## 1-1 gRPC クライアントのデモ（Unary / エラー / デッドライン / サイズ比較 / ストリーミング）
+	$(PY) -m scripts.grpc_client
+
+grpcurl-list: ## 1-1 grpcurl：Server Reflection でサービスとメソッドを一覧
+	$(GRPCURL) localhost:50051 list
+	$(GRPCURL) localhost:50051 describe inventory.v1.InventoryService
+
+grpcurl-get: ## 1-1 grpcurl：GetStock を JSON で呼び出す
+	$(GRPCURL) -d '{"sku": "SKU-000001"}' localhost:50051 inventory.v1.InventoryService/GetStock
+
+grpcurl-watch: ## 1-1 grpcurl：WatchStock（サーバーストリーミング）
+	$(GRPCURL) -d '{"sku": "SKU-000001", "max_events": 5}' localhost:50051 inventory.v1.InventoryService/WatchStock
 .PHONY: $(shell grep -oE '^[a-zA-Z0-9_-]+:' $(MAKEFILE_LIST) | tr -d :)

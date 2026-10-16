@@ -1,4 +1,4 @@
-// MongoDB for VS Code の Playground
+// MongoDB for VS Code の Playground で開いてそのまま実行可能なクエリ集
 // 確認したい文を選択して、右上の実行ボタン（▷）で実行する。解説は docs/mongodb-data.md
 use('webapi_demo');
 
